@@ -316,6 +316,7 @@ def submit(cfg: Path,
         else:
             cluster_id = submit.queue_with_itemdata(txn,
                                                     itemdata=iter(itemdata))
+            cluster_id = cluster_id.cluster()
 
     if verbose:
         print(f'{num_jobs} jobs submmited with job id {cluster_id}')
