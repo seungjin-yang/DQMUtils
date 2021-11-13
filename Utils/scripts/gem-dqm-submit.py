@@ -21,6 +21,7 @@ import htcondor
 from XRootD import client
 from XRootD.client.flags import MkDirFlags
 
+import FWCore.ParameterSet.Config as cms
 from IOMC.RandomEngine.RandomServiceHelper import RandomNumberServiceHelper
 from FWCore.ParameterSet.VarParsing import VarParsing
 
@@ -100,8 +101,6 @@ class CfgInfo:
     def from_file(cls,
                   cfg_path: Union[str, Path],
     ):
-        import FWCore.ParameterSet.Config as cms
-
         if not isinstance(cfg_path, Path):
             cfg_path = Path(cfg_path)
         if not cfg_path.exists():
