@@ -211,7 +211,7 @@ def submit(cfg: Path,
     if not log_dir.exists():
         log_dir.mkdir(parents=True)
         if verbose:
-            print('mkdir: created directory \'{log_dir}\'')
+            print(f'mkdir: created directory \'{log_dir}\'')
 
     if job_batch_name is None:
         job_batch_name = cfg.stem
