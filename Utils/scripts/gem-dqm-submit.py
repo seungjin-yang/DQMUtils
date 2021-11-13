@@ -70,7 +70,7 @@ cmsRun ${{ARGS}}
 
 ################################################################################
 # transfer output files
-xrdcp -v {output_file} ${{OUTPUT_DEST}}
+xrdcp -d 1 -f -v {output_file} ${{OUTPUT_DEST}}
 
 ################################################################################
 # terminate
@@ -273,7 +273,6 @@ def submit(cfg: Path,
         'executable': str(executable),
         'arguments': arguments,
         'transfer_input_files': str(cfg),
-        'OutputDest': output_dest,
         'JobBatchName': job_batch_name,
         'log': str(log_dir / 'condor.log'),
         'output': str(log_dir / 'job_$(ProcId).out'),
