@@ -79,11 +79,10 @@ echo "end: $(date)"
 
 
 def to_xrootd_url(path):
-    cls = type(path)
     path = str(path)
     assert path.startswith('/xrootd/')
-    path = path.replace('/xrootd/', 'root://cms-xrdr.private.lo:2094///xrd/')
-    return cls(path)
+    path = path.replace('/xrootd/', 'root://cms-xrdr.private.lo:2094//xrd/')
+    return path
 
 
 @dataclass
