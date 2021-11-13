@@ -72,6 +72,8 @@ cmsRun ${{ARGS}}
 # transfer output files
 xrdcp -v {output_file} ${{OUTPUT_DEST}}
 
+rm -vf {output_file}
+
 ################################################################################
 # terminate
 echo "end: $(date)"
