@@ -96,23 +96,31 @@ class CfgInfo:
 
     @classmethod
     def from_file(cls,
-                  cfg_file: Union[str, Path],
+                  cfg_path: Union[str, Path],
     ):
         import FWCore.ParameterSet.Config as cms
 
-        if not isinstance(cfg_file, Path):
-            cfg_file = Path(cfg_file)
-        cfg_file = cfg_file.resolve()
-        if not cfg_file.exists():
-            raise FileNotFoundError(cfg_file)
+        if not isinstance(cfg_path, Path):
+            cfg_path = Path(cfg_path)
+        if not cfg_path.exists():
+            raise FileNotFoundError(cfg_path)
+
+        #
+        with open(cfg_path, 'r') as cfg_file:
+            cfg_text = cfg_file.readlines()
+        cfg_text = [each for each in cfg_text if 'parseArguments' not in each]
+        cfg_text = ''.join(cfg_text)
 
         with tempfile.TemporaryDirectory() as tmp_pythonpath:
-            symlink_name = re.sub(pattern=r'(-|\.)', repl=r'_', string=cfg_file.stem)
-            symlink = Path(tmp_pythonpath).joinpath(symlink_name).with_suffix('.py')
-            symlink.symlink_to(cfg_file)
+            test_cfg_name = re.sub(pattern=r'(-|\.)', repl=r'_', string=cfg_path.stem)
+            test_cfg_path = Path(tmp_pythonpath).joinpath(test_cfg_name).with_suffix('.py')
+            test_cfg_path.write_text(cfg_text)
+
+            print(f'Temporary PYTHONPATH: {tmp_pythonpath}')
+            print(f'Temporary cfg: {test_cfg_path.stem}')
 
             sys.path.append(tmp_pythonpath)
-            cfg_module = importlib.import_module(symlink.stem)
+            cfg_module = importlib.import_module(test_cfg_path.stem)
 
             source_type = cfg_module.process.source.type_()
             if source_type not in ('EmptySource', 'PoolSource'):
@@ -174,6 +182,10 @@ def submit(cfg: Path,
     ############################################################################
     # setup
     ############################################################################
+    cfg = cfg.resolve()
+    if not cfg.exists():
+        raise FileNotFoundError(cfg)
+
     cfg_info = CfgInfo.from_file(cfg)
     if verbose:
         print(cfg_info)
