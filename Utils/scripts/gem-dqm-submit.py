@@ -168,6 +168,20 @@ class CfgInfo:
     def has_attr(cls, module, target_cls):
         return cls.find_attr(module, target_cls) is not None
 
+def get_branch():
+    cmssw_base = os.getenv('CMSSW_BASE')
+    if cmssw_base is None:
+        raise RuntimeError
+
+    repo = os.path.join(cmssw_base, 'src')
+    repo = git.Repo(repo)
+    config_reader = repo.config_reader()
+
+    github_user = config_reader.get('user', 'github')
+    branch = repo.active_branch.name
+    return f'{github_user}:{branch}'
+
+
 def submit(cfg: Path,
            output_dir: Path,
            log_dir: Optional[Path] = None,
@@ -327,11 +341,11 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('cfg', type=Path, help='config')
     parser.add_argument('-o', '--output-dir', type=Path, required=True)
-    parser.add_argument('--log-dir', type=Path)
+    parser.add_argument('-l', '--log-dir', type=Path)
     parser.add_argument('-n', '--num-jobs', type=int)
     parser.add_argument('-i', '--input-dir', type=Path)
     parser.add_argument('-m', '--memory', type=str, default='1GB')
-    parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('-d', '--dry-run', action='store_true')
     parser.add_argument('-v', '--verbose', action='store_true')
     args = parser.parse_args()
 
