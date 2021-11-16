@@ -5,7 +5,6 @@ slc7_amd64_gcc900
 Python 3.9.6
 """
 import sys
-
 import os
 import warnings
 import importlib
@@ -20,6 +19,7 @@ import argparse
 import htcondor
 from XRootD import client
 from XRootD.client.flags import MkDirFlags
+import git
 
 import FWCore.ParameterSet.Config as cms
 from IOMC.RandomEngine.RandomServiceHelper import RandomNumberServiceHelper
@@ -43,21 +43,17 @@ RUN_TEMPLATE = r"""#!/bin/sh
 echo "start: $(date)"
 echo "whoami: $(whoami)"
 echo "hostname: $(hostname)"
-pwd
+echo "pwd: $(pwd)"
+ls -lha ./
 
 ################################################################################
 # setup
-source /cvmfs/cms.cern.ch/cmsset_default.sh
-SCRAM_ARCH={scram_arch} scramv1 project CMSSW {cmssw_version}
-scramv1 project CMSSW {cmssw_version}
-cd ./{cmssw_version}/src
-eval `scramv1 runtime -sh`
-cd -
 echo "SCRAM_ARCH: ${{SCRAM_ARCH}}"
 echo "CMSSW_VERSION: ${{CMSSW_VERSION}}"
+echo "CMSSW_BASE: ${{CMSSW_BASE}}"
 
 ################################################################################
-# argument parsing 
+# argument parsing
 OUTPUT_DEST=${{1}}
 shift 1
 ARGS=${{@}}
@@ -88,7 +84,7 @@ def to_xrootd_url(path):
     return path
 
 
-@dataclass
+@dataclass(frozen=True)
 class CfgInfo:
     source_type: str
     output_file: str
@@ -154,7 +150,7 @@ class CfgInfo:
                 candidate_list.append(attr)
 
         if len(candidate_list) == 0:
-            candidate = None            
+            candidate = None
         elif len(candidate_list) > 1:
             warnings.warn((f'Found {len(candidate_list)} {target_cls.__name__} '
                           'instances. Return the first instance.'),
@@ -168,18 +164,27 @@ class CfgInfo:
     def has_attr(cls, module, target_cls):
         return cls.find_attr(module, target_cls) is not None
 
-def get_branch():
-    cmssw_base = os.getenv('CMSSW_BASE')
-    if cmssw_base is None:
-        raise RuntimeError
 
-    repo = os.path.join(cmssw_base, 'src')
-    repo = git.Repo(repo)
-    config_reader = repo.config_reader()
+@dataclass(frozen=True)
+class GitInfo:
+    user: str
+    branch: str
+    sha1_hash: str
 
-    github_user = config_reader.get('user', 'github')
-    branch = repo.active_branch.name
-    return f'{github_user}:{branch}'
+    @classmethod
+    def from_config(cls):
+        cmssw_base = os.getenv('CMSSW_BASE')
+        if cmssw_base is None:
+            raise RuntimeError
+
+        repo = os.path.join(cmssw_base, 'src')
+        repo = git.Repo(repo)
+        config_reader = repo.config_reader()
+
+        github_user = config_reader.get('user', 'github')
+        branch = repo.active_branch.name
+        sha1_hash = repo.git.rev_parse('HEAD')
+        return cls(github_user, branch, sha1_hash)
 
 
 def submit(cfg: Path,
@@ -267,13 +272,16 @@ def submit(cfg: Path,
     # executable
     ############################################################################
     # NOTE
-    if cfg_info.source_type == 'EmptySource':
+    if cfg_info.has_empty_source:
+        # EmptySource
         arguments = f'$(OutputDest) {cfg.name}'
-    elif cfg_info.source_type == 'PoolSource':
-        arguments = f'$(OutputDest) {cfg.name} inputFiles=$(input_file)' 
     else:
-        raise ValueError(cfg_info.source_type)
+        # PoolSource
+        arguments = f'$(OutputDest) {cfg.name} inputFiles=$(input_file)'
 
+    ############################################################################
+    #
+    ############################################################################
     executable_content = RUN_TEMPLATE.format(
         scram_arch=scram_arch,
         cmssw_version=cmssw_version,
@@ -282,7 +290,7 @@ def submit(cfg: Path,
 
     executable = log_dir.joinpath('run.sh')
     if verbose:
-        print(f'executable: {executable}') 
+        print(f'executable: {executable}')
 
     with open(executable, 'w') as executable_file:
         executable_file.write(executable_content)
@@ -357,7 +365,6 @@ def main():
            memory=args.memory,
            dry_run=args.dry_run,
            verbose=args.verbose)
-
 
 
 if __name__ == '__main__':
