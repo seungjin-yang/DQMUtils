@@ -15,11 +15,16 @@ import tempfile
 import re
 import json
 import argparse
+import socket
 
 import htcondor
-from XRootD import client
-from XRootD.client.flags import MkDirFlags
-import git
+
+try:
+    from XRootD import client
+    from XRootD.client.flags import MkDirFlags
+    HAS_XROOTD = True
+except (ModuleNotFoundError, ImportError) as error:
+    HAS_XROOTD = False
 
 import FWCore.ParameterSet.Config as cms
 from IOMC.RandomEngine.RandomServiceHelper import RandomNumberServiceHelper
@@ -27,13 +32,17 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 
 
 SUBMIT_TEMPLATE = {
-    'accounting_group': 'group_cms',
-    '+SingularityImage': '\"/cvmfs/singularity.opensciencegrid.org/opensciencegrid/osgvo-el7:latest\"',
-    '+SingularityBind': '\"/cvmfs, /cms, /share\"',
     'universe': 'vanilla',
     'getenv': 'True',
     'should_transfer_files': 'YES',
     'when_to_transfer_output': 'ON_EXIT',
+}
+
+# FIXME
+SUBMIT_KISTI_ATTRS = {
+    'accounting_group': 'group_cms',
+    '+SingularityImage': '\"/cvmfs/singularity.opensciencegrid.org/opensciencegrid/osgvo-el7:latest\"',
+    '+SingularityBind': '\"/cvmfs, /cms, /share\"',
 }
 
 
@@ -126,8 +135,15 @@ class CfgInfo:
             output_file = cls.find_attr(cfg_module.process, cms.OutputModule).fileName.value()
             if output_file.startswith('file:'):
                 output_file = output_file[len('file:'):]
-            else:
+            elif output_file.startswith(('root://', 'gsiftp://')):
                 raise NotImplementedError(output_file)
+            else:
+                # FIXME
+                if '/' in output_file:
+                    # TODO warnings.warn
+                    output_file = Path(output_file).name
+                else:
+                    pass
 
             if source_type == 'EmptySource':
                 if not cls.has_attr(cfg_module, RandomNumberServiceHelper):
@@ -165,28 +181,6 @@ class CfgInfo:
         return cls.find_attr(module, target_cls) is not None
 
 
-@dataclass(frozen=True)
-class GitInfo:
-    user: str
-    branch: str
-    sha1_hash: str
-
-    @classmethod
-    def from_config(cls):
-        cmssw_base = os.getenv('CMSSW_BASE')
-        if cmssw_base is None:
-            raise RuntimeError
-
-        repo = os.path.join(cmssw_base, 'src')
-        repo = git.Repo(repo)
-        config_reader = repo.config_reader()
-
-        github_user = config_reader.get('user', 'github')
-        branch = repo.active_branch.name
-        sha1_hash = repo.git.rev_parse('HEAD')
-        return cls(github_user, branch, sha1_hash)
-
-
 def submit(cfg: Path,
            output_dir: Path,
            log_dir: Optional[Path] = None,
@@ -202,6 +196,8 @@ def submit(cfg: Path,
     ############################################################################
     # setup
     ############################################################################
+    hostname = socket.gethostname()
+
     cfg = cfg.resolve()
     if not cfg.exists():
         raise FileNotFoundError(cfg)
@@ -238,6 +234,7 @@ def submit(cfg: Path,
     if cfg_info.source_type == 'EmptySource':
         pass
     elif cfg_info.source_type == 'PoolSource':
+        # FIXME
         itemdata = [{'input_file': to_xrootd_url(each)} for each in input_dir.glob('*.root')]
         num_jobs = len(itemdata)
     else:
@@ -258,11 +255,17 @@ def submit(cfg: Path,
     #
     ############################################################################
     if not output_dir.exists():
-        xrootd_client = client.FileSystem('root://cms-xrdr.private.lo:2094/')
-        output_dir_xrootd_path = str(output_dir).replace('/xrootd/', '/xrd/')
-        xrootd_client.mkdir(output_dir_xrootd_path, MkDirFlags.MAKEPATH)
-        if verbose:
-            print(f'mkdir: created directory \'{output_dir_xrootd_path}\'')
+        if hostname in ('ui10.sdfarm.kr', 'ui20.sdfarm.kr'): # FIXME
+            xrootd_client = client.FileSystem('root://cms-xrdr.private.lo:2094/')
+            output_dir_xrootd_path = str(output_dir).replace('/xrootd/', '/xrd/')
+            xrootd_client.mkdir(output_dir_xrootd_path, MkDirFlags.MAKEPATH)
+            if verbose:
+                print(f'mkdir: created directory \'{output_dir_xrootd_path}\'')
+        elif hostname in ('gate', ):
+
+
+        else:
+            raise NotImplementedError(hostname)
 
     output_stem = Path(cfg_info.output_file).stem
     output_dir = to_xrootd_url(output_dir)
@@ -282,11 +285,7 @@ def submit(cfg: Path,
     ############################################################################
     #
     ############################################################################
-    executable_content = RUN_TEMPLATE.format(
-        scram_arch=scram_arch,
-        cmssw_version=cmssw_version,
-        cfg=cfg,
-        output_file=cfg_info.output_file)
+    executable_content = RUN_TEMPLATE.format(output_file=cfg_info.output_file)
 
     executable = log_dir.joinpath('run.sh')
     if verbose:
@@ -303,6 +302,9 @@ def submit(cfg: Path,
     #
     ############################################################################
     submit = SUBMIT_TEMPLATE.copy()
+    if hostname in ('ui10.sdfarm.kr', 'ui20.sdfarm.kr'): # FIXME
+        submit |= SUBMIT_KISTI_ATTRS
+
     submit.update({
         'executable': str(executable),
         'arguments': arguments,
