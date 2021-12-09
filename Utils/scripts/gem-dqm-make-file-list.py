@@ -24,14 +24,16 @@ def main():
         raise FileExistsError(args.output_path)
 
     file_list = args.input_dir.glob(args.pathname)
-    file_list = [str(each) for each in file_list]
+    file_list = [str(each.resolve()) for each in file_list]
 
     hostname = socket.gethostname()
-    if hostname == 'ui20.sdfarm.kr':
+    if hostname in ('ui10.sdfarm.kr', 'ui20.sdfarm.kr'):
         if str(args.input_dir).startswith('/xrootd/'):
             file_list = [each.replace('/xrootd/', 'root://cms-xrdr.private.lo:2094//xrd/') for each in file_list]
         else:
             raise NotImplementedError(f'hostname={hostname} but input_dir={args.input_dir}')
+    elif hostname in ('gate', ):
+        file_list = ['file:' + each for each in file_list]
     else:
         raise NotImplementedError(hostname)
 
