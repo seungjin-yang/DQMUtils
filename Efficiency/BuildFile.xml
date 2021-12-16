@@ -1,0 +1,22 @@
+<use name="FWCore/Framework"/>
+<use name="FWCore/ParameterSet"/>
+<use name="FWCore/ServiceRegistry"/>
+<use name="FWCore/MessageLogger"/>
+<use name="FWCore/PluginManager"/>
+<use name="CommonTools/UtilAlgos"/>
+<use name="DataFormats/Common"/>
+<use name="DataFormats/MuonDetId"/>
+<use name="DataFormats/GEMDigi"/>
+<use name="DataFormats/GEMRecHit"/>
+<use name="DataFormats/GeometryCommonDetAlgo"/>
+<use name="DataFormats/MuonReco"/>
+<use name="Geometry/CommonDetUnit"/>
+<use name="Geometry/Records"/>
+<use name="Geometry/GEMGeometry"/>
+<use name="RecoMuon/TrackingTools"/>
+<use name="Validation/MuonHits"/>
+<use name="rootcore"/>
+<use name="rooteg"/>
+<export>
+      <lib name="1"/>
+</export>
