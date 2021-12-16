@@ -120,7 +120,21 @@ class CfgInfo:
             if source_type not in ('EmptySource', 'PoolSource'):
                 raise ValueError(f'Got unexpected source type: {source_type}')
 
-            output_file = cls.find_attr(cfg_module.process, cms.OutputModule).fileName.value()
+            output_file = None
+
+            output_module = cls.find_attr(cfg_module.process, cms.OutputModule)
+            if output_module is not None:
+                output_file = output_module.fileName.value()
+            else:
+                # FIXME support both output
+                file_service = cls.find_attr(cfg_module.process, cms.Service, type_="TFileService")
+                if file_service is not None:
+                    output_file = file_service.fileName.value()
+
+
+            if output_file is None:
+                raise RuntimeError('failed to find a output file')
+
             if output_file.startswith('file:'):
                 output_file = output_file[len('file:'):]
             elif output_file.startswith(('root://', 'gsiftp://')):
@@ -133,6 +147,7 @@ class CfgInfo:
                 else:
                     pass
 
+
             if source_type == 'EmptySource':
                 if not cls.inspect_attr(cfg_module, RandomNumberServiceHelper):
                     raise RuntimeError('EmptySource but RandomNumberServiceHelper not found')
@@ -143,13 +158,16 @@ class CfgInfo:
         return cls(source_type=source_type, output_file=output_file)
 
     @staticmethod
-    def find_attr(module, target_cls):
+    def find_attr(module, target_cls, type_=None):
         candidate_list = []
         for attr in dir(module):
             if attr.startswith('_'):
                 continue
             attr = getattr(module, attr)
             if isinstance(attr, target_cls):
+                if type_ is not None:
+                    if attr.type_() != type_:
+                        continue
                 candidate_list.append(attr)
 
         if len(candidate_list) == 0:
