@@ -30,33 +30,33 @@ void ME11GenFilter::fillDescriptions(edm::ConfigurationDescriptions& description
 
 
 bool ME11GenFilter::filter(edm::Event& event, const edm::EventSetup& setup) {
-  const edm::Handle<edm::HepMCProduct>&& hep_mc_product = event.getHandle(kHepMCProductToken_);
+  const edm::Handle<edm::HepMCProduct>& hep_mc_product = event.getHandle(kHepMCProductToken_);
   if (not hep_mc_product.isValid()) {
     edm::LogError("ME11GenFilter") << "invalid HepMCProduct";
     return false;
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  const edm::ESHandle<CSCGeometry>&& csc = setup.getHandle(kCSCGeometryToken_);
+  const edm::ESHandle<CSCGeometry>& csc = setup.getHandle(kCSCGeometryToken_);
   if (not csc.isValid()) {
     edm::LogError("ME11GenFilter") << "invalid CSCGeometry";
     return false;
   }
 
-  const edm::ESHandle<MagneticField>&& magnetic_field = setup.getHandle(kMagneticFieldToken_);
+  const edm::ESHandle<MagneticField>& magnetic_field = setup.getHandle(kMagneticFieldToken_);
   if (not magnetic_field.isValid()) {
     edm::LogError("ME11GenFilter") << "invalid MagneticField";
     return false;
   }
 
-  const edm::ESHandle<Propagator>&& propagator = setup.getHandle(kPropagatorToken_);
+  const edm::ESHandle<Propagator>& propagator = setup.getHandle(kPropagatorToken_);
   if (not propagator.isValid()) {
     edm::LogError("ME11GenFilter") << "invalid Propagator";
     return false;
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  const std::vector<Disk::DiskPointer>&& me11_vector = buildME11Disks(csc);
+  const std::vector<Disk::DiskPointer>& me11_vector = buildME11Disks(csc);
 
   bool result = false;
 
@@ -105,7 +105,7 @@ std::vector<Disk::DiskPointer> ME11GenFilter::buildME11Disks(
 
   std::map<int, std::vector<const CSCChamber*> > me11_chambers_per_endcap;
   for (const CSCChamber* chamber : csc->chambers()) {
-    const CSCDetId&& chamber_id = chamber->id();
+    const CSCDetId& chamber_id = chamber->id();
     if (not chamber_id.isME11()) {
       continue;
     }
@@ -153,7 +153,7 @@ std::vector<Disk::DiskPointer> ME11GenFilter::buildME11Disks(
 
     // the bounds from min and max R and Z in the local coordinates.
     SimpleDiskBounds* bounds = new SimpleDiskBounds(rmin, rmax, zmin, zmax);
-    const Disk::DiskPointer&& disk = Disk::build(position, rotation, bounds);
+    const Disk::DiskPointer& disk = Disk::build(position, rotation, bounds);
 
     me11_vector.push_back(disk);
   }
@@ -174,14 +174,14 @@ bool ME11GenFilter::propagateToME11(const GlobalPoint& starting_state_position,
                                            charge,
                                            magnetic_field.product()};
 
-  const TrajectoryStateOnSurface&& propagated_state = propagator->propagate(
+  const TrajectoryStateOnSurface& propagated_state = propagator->propagate(
       starting_state, *me11_disk);
 
   if (not propagated_state.isValid()) {
     return false;
   }
 
-  const LocalPoint&& local_point = (*me11_disk).toLocal(propagated_state.globalPosition());
+  const LocalPoint& local_point = (*me11_disk).toLocal(propagated_state.globalPosition());
   if (not (*me11_disk).bounds().inside(local_point)) {
     return false;
   }
