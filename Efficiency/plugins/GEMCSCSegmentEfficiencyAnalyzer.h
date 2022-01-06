@@ -1,8 +1,6 @@
 #ifndef GEMDQMUtils_Efficiency_GEMCSCSegmentEfficiencyAnalyzer_h
 #define GEMDQMUtils_Efficiency_GEMCSCSegmentEfficiencyAnalyzer_h
 
-#include "GEMDQMUtils/Efficiency/interface/GEMLayerData.h"
-
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/one/EDAnalyzer.h"
