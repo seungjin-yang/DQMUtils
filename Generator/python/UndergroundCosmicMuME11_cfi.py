@@ -1,10 +1,7 @@
 import FWCore.ParameterSet.Config as cms
-from GEMDQMUtils.GenFilters.ME11GenFilter_cfi import ME11GenFilter
-# from TrackingTools.TransientTrack.TransientTrackBuilder_cfi import *
-from RecoMuon.TrackingTools.MuonServiceProxy_cff import *
-# from TrackPropagation.SteppingHelixPropagator.SteppingHelixPropagatorAlong_cfi import *
+from GEMDQMUtils.GenFilters.ME11GenFilter_cff import ME11GenFilter
 
-# https://github.com/cms-sw/cmssw/blob/master/Configuration/Generator/python/UndergroundCosmicMu_cfi.py
+# Modifed from https://github.com/cms-sw/cmssw/blob/master/Configuration/Generator/python/UndergroundCosmicMu_cfi.py
 
 generator = cms.EDProducer("CosMuoGenProducer",
     ZCentrOfTarget = cms.double(0.0),
