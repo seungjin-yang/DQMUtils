@@ -1,3 +1,4 @@
-from GEMDQMUtils.GenFilters.ME11GenFilter_cfi import ME11GenFilter
+import FWCore.ParameterSet.Config as cms
+
+from GEMDQMUtils.GenFilters.ME11GenFilter_cfi import *
 from TrackPropagation.SteppingHelixPropagator.SteppingHelixPropagatorAlong_cfi import *
-from RecoMuon.TrackingTools.MuonServiceProxy_cff import *

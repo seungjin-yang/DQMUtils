@@ -1,5 +1,5 @@
 import FWCore.ParameterSet.Config as cms
-from GEMDQMUtils.GenFilters.ME11GenFilter_cff import ME11GenFilter
+from GEMDQMUtils.GenFilters.ME11GenFilter_cff import *
 
 # Modifed from https://github.com/cms-sw/cmssw/blob/master/Configuration/Generator/python/UndergroundCosmicMu_cfi.py
 
