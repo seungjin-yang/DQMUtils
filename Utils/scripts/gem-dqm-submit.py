@@ -22,17 +22,13 @@ import socket
 
 import htcondor
 
-
 import FWCore.ParameterSet.Config as cms
 from IOMC.RandomEngine.RandomServiceHelper import RandomNumberServiceHelper
 from FWCore.ParameterSet.VarParsing import VarParsing
 
-
 # TODO
 # class FileSystem(Enum):
 #     XROOTD = 1
-
-
 
 
 RUN_TEMPLATE = r"""#!/bin/sh
@@ -198,6 +194,7 @@ class CondorHelperBase(abc.ABC):
                  num_jobs: Optional[int] = None,
                  input_dir: Optional[str] = None,
                  memory: int = 1,
+                 job_batch_name: Optional[str] = None,
     ) -> None:
         r"""
         """
@@ -210,7 +207,7 @@ class CondorHelperBase(abc.ABC):
         self.output_file = output_file
         self.source_type = source_type
 
-        self.job_batch_name = cfg_file.stem
+        self.job_batch_name = job_batch_name or cfg_file.stem
         self.log_dir = log_dir or (Path.cwd() / 'logs' / Path(cfg_file).stem)
 
     @property
@@ -453,6 +450,7 @@ def main():
     parser.add_argument('-n', '--num-jobs', type=int)
     parser.add_argument('-i', '--input-dir', type=Path)
     parser.add_argument('-m', '--memory', type=str, default='1GB')
+    parser.add_argument('-b', '--job-batch-name', type=str)
     args = parser.parse_args()
 
     cfg_info = CfgInfo.from_file(args.cfg_file)
@@ -474,6 +472,7 @@ def main():
         num_jobs=args.num_jobs,
         input_dir=args.input_dir,
         memory=args.memory,
+        job_batch_name=args.job_batch_name,
         output_file=cfg_info.output_file,
         source_type=cfg_info.source_type)
 
